@@ -149,56 +149,6 @@ docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8080 frontend
 
 ---
 
-## 🔌 API Endpoints
-
-Base URL: `http://localhost:8080`
-
-### `GET /health`
-Cek status server.
-```json
-{ "status": "ok" }
-```
-
-### `POST /search`
-Traversal BFS/DFS pada pohon DOM berdasarkan CSS selector.
-
-**Request:**
-```json
-{
-  "url": "https://example.com",
-  "html": "",
-  "algorithm": "bfs",
-  "selector": "p",
-  "limit": 0
-}
-```
-> Isi **salah satu** antara `url` atau `html`. `limit: 0` = tampilkan semua hasil.
-
-**Response:**
-```json
-{
-  "matches": [...],
-  "tree": [...],
-  "match_count": 3,
-  "visited_count": 42,
-  "duration_ms": 5,
-  "max_depth": 7,
-  "traversal_log": ["html", "head", "body", "..."],
-  "traversal_sequence": ["root", "root.0", "root.1", "..."]
-}
-```
-
-### `POST /lca`
-Mencari Lowest Common Ancestor dari dua CSS selector.
-
-**Request:**
-```json
-{
-  "url": "https://example.com",
-  "selector_a": "h1",
-  "selector_b": "p.info"
-}
-```
 ## 🧑‍💻 Kontributor
 
 | NIM | Nama | Tugas |
@@ -212,8 +162,8 @@ Mencari Lowest Common Ancestor dari dua CSS selector.
 ## 📚 Referensi
 
 - [CSS Selector Reference — MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors)
-- [Breadth-First Search — Wikipedia](https://www.geeksforgeeks.org/dsa/breadth-first-search-or-bfs-for-a-graph/)
-- [Depth-First Search — Wikipedia](https://www.geeksforgeeks.org/dsa/depth-first-search-or-dfs-for-a-graph/)
-- [LCA Binary Lifting — CP Algorithms](https://www.geeksforgeeks.org/dsa/lca-in-a-tree-using-binary-lifting-technique/)
+- [Breadth-First Search — GeeksfroGeeks](https://www.geeksforgeeks.org/dsa/breadth-first-search-or-bfs-for-a-graph/)
+- [Depth-First Search — GeeksfroGeeks](https://www.geeksforgeeks.org/dsa/depth-first-search-or-dfs-for-a-graph/)
+- [LCA Binary Lifting — GeeksfroGeeks](https://www.geeksforgeeks.org/dsa/lca-in-a-tree-using-binary-lifting-technique/)
 - [Go Documentation](https://go.dev/doc/)
 - [Next.js Documentation](https://nextjs.org/docs)
