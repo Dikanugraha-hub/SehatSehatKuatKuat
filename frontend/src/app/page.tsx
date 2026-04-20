@@ -1,38 +1,50 @@
 "use client";
+// app/page.tsx
 
-// Satu call ke POST /search — backend handle URL scraping + traversal sekaligus
 import { useState, useMemo } from "react";
 import InputForm from "@/components/InputForm";
+import LCAForm from "@/components/LCAForm";
 import DOMTreeViewer from "@/components/DOMTreeViewer";
 import StatsPanel from "@/components/StatsPanel";
 import AnimationControls from "@/components/AnimationControls";
 import TraversalLog from "@/components/TraversalLog";
 import MatchedResults from "@/components/MatchedResults";
+import LCAResult from "@/components/LCAResult";
 import { useTraversalAnimation } from "@/hooks/useTraversalAnimation";
-import { searchDOM } from "@/lib/api";
+import { searchDOM, findLCA } from "@/lib/api";
 import { MOCK_BFS_RESPONSE, MOCK_DFS_RESPONSE } from "@/lib/mockData";
-import { SearchResponse, Algorithm, InputMode } from "@/types";
+import { SearchResponse, LCAResponse, Algorithm, InputMode } from "@/types";
 
-type TabKey = "tree" | "results" | "log";
+// Mode halaman utama: traversal BFS/DFS atau LCA
+type PageMode = "traversal" | "lca";
+type TabKey   = "tree" | "results" | "log";
 
 export default function Home() {
-  const [isLoading, setIsLoading]       = useState(false);
-  const [error, setError]               = useState<string | null>(null);
-  const [result, setResult]             = useState<SearchResponse | null>(null);
-  const [activeAlgorithm, setAlgorithm] = useState<Algorithm>("bfs");
-  const [activeSelector, setSelector]   = useState("");
-  const [activeTab, setActiveTab]       = useState<TabKey>("tree");
-  const [animSpeed, setAnimSpeed]       = useState(300);
-  const [isDemoMode, setIsDemoMode]     = useState(false);
+  const [pageMode, setPageMode]         = useState<PageMode>("traversal");
 
-  // Set uid node yang match — untuk highlight dan animasi
+  // ── State traversal ──────────────────────────────────────────────────────
+  const [isLoadingSearch, setLoadingSearch] = useState(false);
+  const [searchError, setSearchError]       = useState<string | null>(null);
+  const [searchResult, setSearchResult]     = useState<SearchResponse | null>(null);
+  const [activeAlgorithm, setAlgorithm]     = useState<Algorithm>("bfs");
+  const [activeSelector, setSelector]       = useState("");
+  const [activeTab, setActiveTab]           = useState<TabKey>("tree");
+  const [animSpeed, setAnimSpeed]           = useState(300);
+  const [isDemoMode, setIsDemoMode]         = useState(false);
+
+  // ── State LCA ────────────────────────────────────────────────────────────
+  const [isLoadingLCA, setLoadingLCA] = useState(false);
+  const [lcaError, setLcaError]       = useState<string | null>(null);
+  const [lcaResult, setLcaResult]     = useState<LCAResponse | null>(null);
+
+  // ── Traversal animation ───────────────────────────────────────────────────
   const matchedUids = useMemo(
-    () => new Set((result?.matches ?? []).map((m) => m.uid)),
-    [result]
+    () => new Set((searchResult?.matches ?? []).map((m) => m.uid)),
+    [searchResult]
   );
 
   const anim = useTraversalAnimation({
-    traversalSequence: result?.traversal_sequence ?? [],
+    traversalSequence: searchResult?.traversal_sequence ?? [],
     matchedUids: Array.from(matchedUids),
     speedMs: animSpeed,
   });
@@ -42,32 +54,37 @@ export default function Home() {
     anim.reset();
   }
 
+  // Switch mode — reset state lain
+  function switchMode(mode: PageMode) {
+    setPageMode(mode);
+    setSearchError(null);
+    setLcaError(null);
+  }
+
+  // ── Demo Mode ─────────────────────────────────────────────────────────────
   function handleDemoMode(algo: Algorithm = "bfs") {
     anim.reset();
-    setError(null);
+    setSearchError(null);
     setIsDemoMode(true);
     setAlgorithm(algo);
     setSelector("p");
     setActiveTab("tree");
-    setResult(algo === "bfs" ? MOCK_BFS_RESPONSE : MOCK_DFS_RESPONSE);
+    setSearchResult(algo === "bfs" ? MOCK_BFS_RESPONSE : MOCK_DFS_RESPONSE);
   }
 
-  async function handleSubmit(params: {
-    html?: string;
-    url?: string;
-    algorithm: Algorithm;
-    selector: string;
-    limit: number;
-    inputMode: InputMode;
+  // ── Submit traversal ──────────────────────────────────────────────────────
+  async function handleTraversalSubmit(params: {
+    html?: string; url?: string;
+    algorithm: Algorithm; selector: string;
+    limit: number; inputMode: InputMode;
   }) {
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
+    setLoadingSearch(true);
+    setSearchError(null);
+    setSearchResult(null);
     setIsDemoMode(false);
     anim.reset();
 
     try {
-      // Satu call ke POST /search — backend handle scraping & traversal
       const res = await searchDOM({
         url:       params.inputMode === "url"  ? params.url  : undefined,
         html:      params.inputMode === "html" ? params.html : undefined,
@@ -75,29 +92,51 @@ export default function Home() {
         selector:  params.selector,
         limit:     params.limit,
       });
-
-      setResult(res);
+      setSearchResult(res);
       setAlgorithm(params.algorithm);
       setSelector(params.selector);
       setActiveTab("tree");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Terjadi kesalahan.";
-      setError(msg);
+      setSearchError(err instanceof Error ? err.message : "Terjadi kesalahan.");
     } finally {
-      setIsLoading(false);
+      setLoadingSearch(false);
     }
   }
 
-  // State yang ditampilkan di tree — idle = semua visited (hasil final), playing = animasi
+  // ── Submit LCA ────────────────────────────────────────────────────────────
+  async function handleLCASubmit(params: {
+    url?: string; html?: string;
+    inputMode: InputMode;
+    selector_a: string; selector_b: string;
+  }) {
+    setLoadingLCA(true);
+    setLcaError(null);
+    setLcaResult(null);
+
+    try {
+      const res = await findLCA({
+        url:        params.inputMode === "url"  ? params.url  : undefined,
+        html:       params.inputMode === "html" ? params.html : undefined,
+        selector_a: params.selector_a,
+        selector_b: params.selector_b,
+      });
+      setLcaResult(res);
+    } catch (err: unknown) {
+      setLcaError(err instanceof Error ? err.message : "Terjadi kesalahan.");
+    } finally {
+      setLoadingLCA(false);
+    }
+  }
+
+  // ── Display state untuk animasi ───────────────────────────────────────────
   const displayVisited = anim.state === "idle"
-    ? new Set(result?.traversal_sequence ?? [])
-    : anim.visitedUids;
+    ? new Set(searchResult?.traversal_sequence ?? []) : anim.visitedUids;
   const displayMatched = anim.state === "idle" ? matchedUids : anim.matchedSoFar;
   const displayCurrent = anim.state === "playing" ? anim.currentUid : null;
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: "tree",    label: "🌳 Pohon DOM" },
-    { key: "results", label: `✓ Hasil (${result?.match_count ?? 0})` },
+    { key: "results", label: `✓ Hasil (${searchResult?.match_count ?? 0})` },
     { key: "log",     label: "📋 Log" },
   ];
 
@@ -113,7 +152,7 @@ export default function Home() {
               <span className="text-blue-400">traverse</span>
             </h1>
             <p className="text-xs text-zinc-500 font-mono">
-              IF2211 Strategi Algoritma · BFS &amp; DFS CSS Selector
+              IF2211 Strategi Algoritma · BFS &amp; DFS &amp; LCA
             </p>
           </div>
           <span className="text-xs font-mono text-zinc-600">ITB · 2025/2026</span>
@@ -123,39 +162,70 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
         {/* ── Left: Input ── */}
         <aside className="space-y-4">
+          {/* Mode Switcher */}
+          <div className="flex rounded-xl overflow-hidden border border-zinc-700">
+            <button
+              onClick={() => switchMode("traversal")}
+              className={`flex-1 py-2.5 text-xs font-mono font-bold transition-colors ${
+                pageMode === "traversal"
+                  ? "bg-emerald-500 text-black"
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+              }`}
+            >
+              BFS / DFS
+            </button>
+            <button
+              onClick={() => switchMode("lca")}
+              className={`flex-1 py-2.5 text-xs font-mono font-bold transition-colors ${
+                pageMode === "lca"
+                  ? "bg-violet-500 text-white"
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+              }`}
+            >
+              📐 LCA
+            </button>
+          </div>
+
+          {/* Form sesuai mode */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
             <h2 className="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-4">
-              Konfigurasi
+              {pageMode === "traversal" ? "Konfigurasi Traversal" : "Konfigurasi LCA"}
             </h2>
-            <InputForm onSubmit={handleSubmit} isLoading={isLoading} />
+            {pageMode === "traversal" ? (
+              <InputForm onSubmit={handleTraversalSubmit} isLoading={isLoadingSearch} />
+            ) : (
+              <LCAForm onSubmit={handleLCASubmit} isLoading={isLoadingLCA} />
+            )}
           </div>
 
-          {/* Demo Mode */}
-          <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-4">
-            <p className="text-xs font-mono text-zinc-500 mb-3">
-              🧪 <span className="text-zinc-300 font-bold">Demo Mode</span> — test tanpa backend
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleDemoMode("bfs")}
-                className="flex-1 py-2 text-xs font-mono font-bold bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg transition-colors"
-              >
-                Demo BFS
-              </button>
-              <button
-                onClick={() => handleDemoMode("dfs")}
-                className="flex-1 py-2 text-xs font-mono font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded-lg transition-colors"
-              >
-                Demo DFS
-              </button>
+          {/* Demo Mode (hanya untuk traversal) */}
+          {pageMode === "traversal" && (
+            <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-4">
+              <p className="text-xs font-mono text-zinc-500 mb-3">
+                🧪 <span className="text-zinc-300 font-bold">Demo Mode</span> — test tanpa backend
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleDemoMode("bfs")}
+                  className="flex-1 py-2 text-xs font-mono font-bold bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg transition-colors"
+                >
+                  Demo BFS
+                </button>
+                <button
+                  onClick={() => handleDemoMode("dfs")}
+                  className="flex-1 py-2 text-xs font-mono font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded-lg transition-colors"
+                >
+                  Demo DFS
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Error */}
-          {error && (
+          {/* Error traversal */}
+          {pageMode === "traversal" && searchError && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 font-mono text-sm text-red-400">
               <p className="font-bold mb-1">⚠ Error:</p>
-              <p className="text-xs">{error}</p>
+              <p className="text-xs">{searchError}</p>
               <p className="mt-2 text-xs text-zinc-500">
                 Backend belum jalan? Coba{" "}
                 <button onClick={() => handleDemoMode()} className="underline text-blue-400">
@@ -164,108 +234,135 @@ export default function Home() {
               </p>
             </div>
           )}
+
+          {/* Error LCA */}
+          {pageMode === "lca" && lcaError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 font-mono text-sm text-red-400">
+              <p className="font-bold mb-1">⚠ Error:</p>
+              <p className="text-xs">{lcaError}</p>
+            </div>
+          )}
         </aside>
 
         {/* ── Right: Output ── */}
         <section className="space-y-4">
-          {!result ? (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
-              <div className="text-5xl mb-4">🌐</div>
-              <p className="font-mono text-zinc-500 text-sm mb-4">
-                Masukkan URL atau HTML dan jalankan traversal untuk melihat visualisasi pohon DOM.
-              </p>
-              <p className="font-mono text-zinc-600 text-xs">
-                Belum punya backend?{" "}
-                <button
-                  onClick={() => handleDemoMode()}
-                  className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
-                >
-                  Coba Demo Mode
-                </button>
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Demo banner */}
-              {isDemoMode && (
-                <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg px-4 py-2 font-mono text-xs text-yellow-400 flex items-center justify-between">
-                  <span>🧪 Demo Mode — data dummy, bukan dari backend</span>
-                  <button onClick={() => setResult(null)} className="text-zinc-500 hover:text-zinc-300 ml-4">✕</button>
-                </div>
-              )}
 
-              {/* Stats */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-                <h2 className="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-3">Statistik</h2>
-                <StatsPanel
-                  durationMs={result.duration_ms}
-                  visitedCount={result.visited_count}
-                  totalNodes={result.tree.length}
-                  maxDepth={result.max_depth}
-                  matchCount={result.match_count}
-                  algorithm={activeAlgorithm}
-                  selector={activeSelector}
+          {/* ── OUTPUT: TRAVERSAL ── */}
+          {pageMode === "traversal" && (
+            !searchResult ? (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
+                <div className="text-5xl mb-4">🌐</div>
+                <p className="font-mono text-zinc-500 text-sm mb-4">
+                  Masukkan URL atau HTML dan jalankan traversal untuk melihat visualisasi pohon DOM.
+                </p>
+                <p className="font-mono text-zinc-600 text-xs">
+                  Belum punya backend?{" "}
+                  <button
+                    onClick={() => handleDemoMode()}
+                    className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+                  >
+                    Coba Demo Mode
+                  </button>
+                </p>
+              </div>
+            ) : (
+              <>
+                {isDemoMode && (
+                  <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg px-4 py-2 font-mono text-xs text-yellow-400 flex items-center justify-between">
+                    <span>🧪 Demo Mode — data dummy, bukan dari backend</span>
+                    <button onClick={() => setSearchResult(null)} className="text-zinc-500 hover:text-zinc-300 ml-4">✕</button>
+                  </div>
+                )}
+
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                  <h2 className="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-3">Statistik</h2>
+                  <StatsPanel
+                    durationMs={searchResult.duration_ms}
+                    visitedCount={searchResult.visited_count}
+                    totalNodes={searchResult.tree.length}
+                    maxDepth={searchResult.max_depth}
+                    matchCount={searchResult.match_count}
+                    algorithm={activeAlgorithm}
+                    selector={activeSelector}
+                  />
+                </div>
+
+                <AnimationControls
+                  state={anim.state}
+                  currentStep={anim.currentStep}
+                  totalSteps={anim.totalSteps}
+                  speed={animSpeed}
+                  onPlay={anim.play}
+                  onPause={anim.pause}
+                  onReset={anim.reset}
+                  onSkipToEnd={anim.skipToEnd}
+                  onSpeedChange={handleSpeedChange}
                 />
-              </div>
 
-              {/* Animasi */}
-              <AnimationControls
-                state={anim.state}
-                currentStep={anim.currentStep}
-                totalSteps={anim.totalSteps}
-                speed={animSpeed}
-                onPlay={anim.play}
-                onPause={anim.pause}
-                onReset={anim.reset}
-                onSkipToEnd={anim.skipToEnd}
-                onSpeedChange={handleSpeedChange}
-              />
-
-              {/* Tabs */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                <div className="flex border-b border-zinc-800">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`flex-1 py-3 text-xs font-mono transition-colors ${
-                        activeTab === tab.key
-                          ? "bg-zinc-800 text-zinc-100 border-b-2 border-emerald-500"
-                          : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                  <div className="flex border-b border-zinc-800">
+                    {tabs.map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`flex-1 py-3 text-xs font-mono transition-colors ${
+                          activeTab === tab.key
+                            ? "bg-zinc-800 text-zinc-100 border-b-2 border-emerald-500"
+                            : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-5">
+                    {activeTab === "tree" && (
+                      <DOMTreeViewer
+                        tree={searchResult.tree}
+                        visitedUids={displayVisited}
+                        currentUid={displayCurrent}
+                        matchedUids={displayMatched}
+                        algorithm={activeAlgorithm}
+                      />
+                    )}
+                    {activeTab === "results" && (
+                      <MatchedResults matches={searchResult.matches} />
+                    )}
+                    {activeTab === "log" && (
+                      <TraversalLog
+                        log={searchResult.traversal_log}
+                        sequence={searchResult.traversal_sequence}
+                        matchedUids={matchedUids}
+                        currentStep={anim.state !== "idle" ? anim.currentStep : -1}
+                        algorithm={activeAlgorithm}
+                        selector={activeSelector}
+                      />
+                    )}
+                  </div>
                 </div>
-
-                <div className="p-5">
-                  {activeTab === "tree" && (
-                    <DOMTreeViewer
-                      tree={result.tree}
-                      visitedUids={displayVisited}
-                      currentUid={displayCurrent}
-                      matchedUids={displayMatched}
-                      algorithm={activeAlgorithm}
-                    />
-                  )}
-                  {activeTab === "results" && (
-                    <MatchedResults matches={result.matches} />
-                  )}
-                  {activeTab === "log" && (
-                    <TraversalLog
-                      log={result.traversal_log}
-                      sequence={result.traversal_sequence}
-                      matchedUids={matchedUids}
-                      currentStep={anim.state !== "idle" ? anim.currentStep : -1}
-                      algorithm={activeAlgorithm}
-                      selector={activeSelector}
-                    />
-                  )}
-                </div>
-              </div>
-            </>
+              </>
+            )
           )}
+
+          {/* ── OUTPUT: LCA ── */}
+          {pageMode === "lca" && (
+            !lcaResult ? (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
+                <div className="text-5xl mb-4">📐</div>
+                <p className="font-mono text-zinc-500 text-sm">
+                  Masukkan dua CSS selector untuk mencari Lowest Common Ancestor pada pohon DOM.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                <h2 className="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-4">
+                  Hasil LCA
+                </h2>
+                <LCAResult result={lcaResult} />
+              </div>
+            )
+          )}
+
         </section>
       </div>
     </main>
