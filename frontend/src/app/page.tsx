@@ -12,7 +12,7 @@ import MatchedResults from "@/components/MatchedResults";
 import LCAResult from "@/components/LCAResult";
 import { useTraversalAnimation } from "@/hooks/useTraversalAnimation";
 import { searchDOM, findLCA } from "@/lib/api";
-import { MOCK_BFS_RESPONSE, MOCK_DFS_RESPONSE } from "@/lib/mockData";
+import { MOCK_BFS_RESPONSE, MOCK_DFS_RESPONSE, MOCK_LCA_RESPONSE } from "@/lib/mockData";
 import { SearchResponse, LCAResponse, Algorithm, InputMode } from "@/types";
 
 // Mode halaman utama: traversal BFS/DFS atau LCA
@@ -104,6 +104,11 @@ export default function Home() {
   }
 
   // ── Submit LCA ────────────────────────────────────────────────────────────
+  function handleDemoLCA() {
+    setLcaError(null);
+    setLcaResult(MOCK_LCA_RESPONSE);
+  }
+
   async function handleLCASubmit(params: {
     url?: string; html?: string;
     inputMode: InputMode;
@@ -135,9 +140,9 @@ export default function Home() {
   const displayCurrent = anim.state === "playing" ? anim.currentUid : null;
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: "tree",    label: "🌳 Pohon DOM" },
-    { key: "results", label: `✓ Hasil (${searchResult?.match_count ?? 0})` },
-    { key: "log",     label: "📋 Log" },
+    { key: "tree",    label: "Pohon DOM" },
+    { key: "results", label: `Hasil (${searchResult?.match_count ?? 0})` },
+    { key: "log",     label: "Log" },
   ];
 
   return (
@@ -147,9 +152,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg font-mono font-bold tracking-tight">
-              <span className="text-emerald-400">DOM</span>
+              <span className="text-emerald-400">SehatSehat</span>
               <span className="text-zinc-400">.</span>
-              <span className="text-blue-400">traverse</span>
+              <span className="text-blue-400">KuatKuat</span>
             </h1>
             <p className="text-xs text-zinc-500 font-mono">
               IF2211 Strategi Algoritma · BFS &amp; DFS &amp; LCA
@@ -182,7 +187,7 @@ export default function Home() {
                   : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
               }`}
             >
-              📐 LCA
+              LCA
             </button>
           </div>
 
@@ -198,11 +203,29 @@ export default function Home() {
             )}
           </div>
 
-          {/* Demo Mode (hanya untuk traversal) */}
+          {/* Demo Mode LCA */}
+          {pageMode === "lca" && (
+            <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-4">
+              <p className="text-xs font-mono text-zinc-500 mb-3">
+                <span className="text-zinc-300 font-bold">Demo Mode</span>
+              </p>
+              <button
+                onClick={handleDemoLCA}
+                className="w-full py-2 text-xs font-mono font-bold bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border border-violet-500/30 rounded-lg transition-colors"
+              >
+                Demo LCA
+              </button>
+              <p className="text-[10px] font-mono text-zinc-600 mt-2">
+                Contoh: LCA dari <span className="text-zinc-400">h1</span> dan <span className="text-zinc-400">span.highlight</span>
+              </p>
+            </div>
+          )}
+
+          {/* Demo Mode traversal */}
           {pageMode === "traversal" && (
             <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-4">
               <p className="text-xs font-mono text-zinc-500 mb-3">
-                🧪 <span className="text-zinc-300 font-bold">Demo Mode</span> — test tanpa backend
+                <span className="text-zinc-300 font-bold">Demo Mode</span>
               </p>
               <div className="flex gap-2">
                 <button
@@ -269,7 +292,7 @@ export default function Home() {
               <>
                 {isDemoMode && (
                   <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg px-4 py-2 font-mono text-xs text-yellow-400 flex items-center justify-between">
-                    <span>🧪 Demo Mode — data dummy, bukan dari backend</span>
+                    <span>Demo Mode</span>
                     <button onClick={() => setSearchResult(null)} className="text-zinc-500 hover:text-zinc-300 ml-4">✕</button>
                   </div>
                 )}

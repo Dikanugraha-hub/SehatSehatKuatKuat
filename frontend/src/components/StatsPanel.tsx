@@ -23,11 +23,11 @@ export default function StatsPanel({
   selector,
 }: StatsPanelProps) {
   const items = [
-    { label: "Waktu Pencarian", value: formatTime(durationMs), color: "text-emerald-400", icon: "⏱" },
-    { label: "Node Dikunjungi", value: visitedCount.toLocaleString(), color: "text-blue-400", icon: "👁" },
-    { label: "Total Node",      value: totalNodes.toLocaleString(),   color: "text-zinc-300", icon: "🌳" },
-    { label: "Kedalaman Maks",  value: maxDepth,                      color: "text-purple-400", icon: "📏" },
-    { label: "Hasil Ditemukan", value: matchCount,                    color: "text-yellow-400", icon: "✓"  },
+    { label: "Waktu Pencarian", value: formatTime(durationMs), color: "text-emerald-400"},
+    { label: "Node Dikunjungi", value: visitedCount.toLocaleString(), color: "text-blue-400"},
+    { label: "Total Node",      value: totalNodes.toLocaleString(),   color: "text-zinc-300"},
+    { label: "Kedalaman Maks",  value: maxDepth,                      color: "text-purple-400"},
+    { label: "Hasil Ditemukan", value: matchCount,                    color: "text-yellow-400"},
   ];
 
   return (
@@ -46,7 +46,6 @@ export default function StatsPanel({
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {items.map((item) => (
           <div key={item.label} className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-3">
-            <div className="text-lg mb-0.5">{item.icon}</div>
             <div className={`text-xl font-mono font-bold ${item.color}`}>{item.value}</div>
             <div className="text-xs text-zinc-500 font-mono">{item.label}</div>
           </div>

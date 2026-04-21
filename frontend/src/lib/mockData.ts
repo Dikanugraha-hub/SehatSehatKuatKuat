@@ -1,7 +1,7 @@
 // lib/mockData.ts
 // Data dummy format NYATA sesuai backend Go (main.go searchResponse)
 
-import { SearchResponse, MatchedNode, TreeNode } from "@/types";
+import { SearchResponse, LCAResponse, MatchedNode, TreeNode } from "@/types";
 
 // Flat adjacency list tree
 const MOCK_TREE: TreeNode[] = [
@@ -94,4 +94,43 @@ export const MOCK_DFS_RESPONSE: SearchResponse = {
     "root.1.0.2",
     "root.1.0.3", "root.1.0.3.0", "root.1.0.3.1",
   ],
+};
+
+// ── Mock LCA ──────────────────────────────────────────────────────────────────
+// Skenario: cari LCA dari <h1> (selector "h1") dan <span.highlight> (selector "span.highlight")
+// LCA-nya adalah <div.container>
+export const MOCK_LCA_RESPONSE: LCAResponse = {
+  node_a: {
+    uid: "root.1.0.0",
+    node_index: 6,
+    tag: "h1",
+    id: "",
+    class: "",
+    content: "Example Domain",
+    depth: 3,
+    path: "html > body > div.container > h1",
+    attributes: {},
+  },
+  node_b: {
+    uid: "root.1.0.1.0",
+    node_index: 10,
+    tag: "span",
+    id: "",
+    class: "highlight",
+    content: "illustrative",
+    depth: 4,
+    path: "html > body > div.container > p > span.highlight",
+    attributes: { class: "highlight" },
+  },
+  lca_node: {
+    uid: "root.1.0",
+    node_index: 5,
+    tag: "div",
+    id: "",
+    class: "container",
+    content: "Example Domain This domain is for illustrative examples.",
+    depth: 2,
+    path: "html > body > div.container",
+    attributes: { class: "container" },
+  },
 };

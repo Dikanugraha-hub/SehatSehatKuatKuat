@@ -51,7 +51,7 @@ export default function LCAForm({ onSubmit, isLoading }: LCAFormProps) {
     <div className="space-y-6">
       {/* Info LCA */}
       <div className="bg-violet-500/10 border border-violet-500/30 rounded-lg px-4 py-3 text-xs font-mono text-violet-300">
-        <p className="font-bold mb-1">📐 Lowest Common Ancestor (LCA)</p>
+        <p className="font-bold mb-1">Lowest Common Ancestor (LCA)</p>
         <p className="text-violet-400">
           Mencari node leluhur terdekat yang sama dari dua elemen HTML yang dipilih via CSS selector.
         </p>
@@ -151,7 +151,7 @@ export default function LCAForm({ onSubmit, isLoading }: LCAFormProps) {
             Mencari LCA...
           </span>
         ) : (
-          "📐 Cari LCA"
+          "Cari LCA"
         )}
       </button>
     </div>
