@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"strings"
 	"testing"
 
 	"tubes-stima-backend/internal/dom"
@@ -84,6 +85,26 @@ func TestParseHTMLEmptyInput(t *testing.T) {
 	_, err := ParseHTML("   ")
 	if err == nil {
 		t.Fatalf("input kosong harus menghasilkan error")
+	}
+}
+
+func TestParseHTMLInvalidStructure(t *testing.T) {
+	_, err := ParseHTML(`<html><body><div><p>Halo</div></body></html>`)
+	if err == nil {
+		t.Fatalf("HTML dengan susunan tag tidak valid harus error")
+	}
+	if !strings.Contains(err.Error(), "tidak cocok") {
+		t.Fatalf("pesan error tidak sesuai, dapat: %v", err)
+	}
+}
+
+func TestParseHTMLMissingBody(t *testing.T) {
+	_, err := ParseHTML(`<html><head><title>Test</title></head></html>`)
+	if err == nil {
+		t.Fatalf("HTML tanpa body harus error")
+	}
+	if !strings.Contains(err.Error(), "<body>") {
+		t.Fatalf("pesan error tidak sesuai, dapat: %v", err)
 	}
 }
 

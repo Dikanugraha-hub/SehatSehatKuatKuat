@@ -17,10 +17,10 @@ func TestHandleSearchSuccessWithHTML(t *testing.T) {
 	}
 
 	body := map[string]any{
-		"html": "<html><body><p class=\"x\">Halo</p></body></html>",
+		"html":      "<html><body><p class=\"x\">Halo</p></body></html>",
 		"algorithm": "bfs",
-		"selector": "p.x",
-		"limit": 1,
+		"selector":  "p.x",
+		"limit":     1,
 	}
 	req := httptest.NewRequest(http.MethodPost, "/search", marshalBody(t, body))
 	req.Header.Set("Content-Type", "application/json")
@@ -130,6 +130,32 @@ func TestHandleSearchValidationErrors(t *testing.T) {
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("status harus 400, dapat: %d body: %s", rec.Code, rec.Body.String())
 		}
+	}
+}
+
+func TestHandleSearchInvalidHTML(t *testing.T) {
+	app := &application{
+		fetchHTML: func(_ string) (string, error) {
+			return "", nil
+		},
+	}
+
+	body := map[string]any{
+		"html":      "<html><body><div><p>bad</div></body></html>",
+		"algorithm": "bfs",
+		"selector":  "p",
+		"limit":     1,
+	}
+	req := httptest.NewRequest(http.MethodPost, "/search", marshalBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	app.routes().ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status harus 400 untuk HTML invalid, dapat: %d body: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "gagal parse HTML") {
+		t.Fatalf("response error harus berisi gagal parse HTML, dapat: %s", rec.Body.String())
 	}
 }
 

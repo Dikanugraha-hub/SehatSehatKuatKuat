@@ -3,7 +3,11 @@
 // Form input untuk fitur LCA (Lowest Common Ancestor)
 import { useState } from "react";
 import { InputMode } from "@/types";
-import { isValidUrl } from "@/lib/utils";
+import {
+  isValidUrl,
+  validateCssSelectorInput,
+  validateHtmlInput,
+} from "@/lib/utils";
 
 interface LCAFormProps {
   onSubmit: (params: {
@@ -26,24 +30,37 @@ export default function LCAForm({ onSubmit, isLoading }: LCAFormProps) {
 
   function handleSubmit() {
     setError("");
+    const trimmedUrl = url.trim();
+    const trimmedHtml = html.trim();
+    const trimmedSelectorA = selectorA.trim();
+    const trimmedSelectorB = selectorB.trim();
 
     if (inputMode === "url") {
-      if (!url.trim())        return setError("URL tidak boleh kosong.");
-      if (!isValidUrl(url))   return setError("Format URL tidak valid.");
+      if (!trimmedUrl) return setError("URL tidak boleh kosong.");
+      if (!isValidUrl(trimmedUrl)) return setError("Format URL tidak valid.");
     } else {
-      if (!html.trim())       return setError("HTML tidak boleh kosong.");
+      const htmlValidation = validateHtmlInput(trimmedHtml);
+      if (!htmlValidation.isValid) return setError(htmlValidation.error ?? "HTML tidak valid.");
     }
 
-    if (!selectorA.trim())    return setError("Selector A tidak boleh kosong.");
-    if (!selectorB.trim())    return setError("Selector B tidak boleh kosong.");
-    if (selectorA === selectorB) return setError("Selector A dan B harus berbeda.");
+    const selectorAValidation = validateCssSelectorInput(trimmedSelectorA);
+    if (!selectorAValidation.isValid) {
+      return setError(`Selector A: ${selectorAValidation.error ?? "tidak valid."}`);
+    }
+
+    const selectorBValidation = validateCssSelectorInput(trimmedSelectorB);
+    if (!selectorBValidation.isValid) {
+      return setError(`Selector B: ${selectorBValidation.error ?? "tidak valid."}`);
+    }
+
+    if (trimmedSelectorA === trimmedSelectorB) return setError("Selector A dan B harus berbeda.");
 
     onSubmit({
-      url:       inputMode === "url"  ? url  : undefined,
-      html:      inputMode === "html" ? html : undefined,
+      url:       inputMode === "url"  ? trimmedUrl  : undefined,
+      html:      inputMode === "html" ? trimmedHtml : undefined,
       inputMode,
-      selector_a: selectorA,
-      selector_b: selectorB,
+      selector_a: trimmedSelectorA,
+      selector_b: trimmedSelectorB,
     });
   }
 

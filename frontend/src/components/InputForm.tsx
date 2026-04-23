@@ -3,7 +3,11 @@
 // Form untuk input URL/HTML, pilihan algoritma, CSS selector, dan limit
 import { useState } from "react";
 import { Algorithm, InputMode } from "@/types";
-import { isValidUrl } from "@/lib/utils";
+import {
+  isValidUrl,
+  validateCssSelectorInput,
+  validateHtmlInput,
+} from "@/lib/utils";
 
 interface InputFormProps {
   onSubmit: (params: {
@@ -29,21 +33,32 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
 
   function handleSubmit() {
     setError("");
+    const trimmedUrl = url.trim();
+    const trimmedHtml = html.trim();
+    const trimmedSelector = selector.trim();
 
     if (inputMode === "url") {
-      if (!url.trim()) return setError("URL tidak boleh kosong.");
-      if (!isValidUrl(url)) return setError("Format URL tidak valid.");
+      if (!trimmedUrl) return setError("URL tidak boleh kosong.");
+      if (!isValidUrl(trimmedUrl)) return setError("Format URL tidak valid.");
     } else {
-      if (!html.trim()) return setError("HTML tidak boleh kosong.");
+      const htmlValidation = validateHtmlInput(trimmedHtml);
+      if (!htmlValidation.isValid) return setError(htmlValidation.error ?? "HTML tidak valid.");
     }
 
-    if (!selector.trim()) return setError("CSS Selector tidak boleh kosong.");
+    const selectorValidation = validateCssSelectorInput(trimmedSelector);
+    if (!selectorValidation.isValid) {
+      return setError(selectorValidation.error ?? "CSS Selector tidak valid.");
+    }
+
+    if (limitMode === "top" && (!Number.isInteger(limitN) || limitN < 1)) {
+      return setError("Top N harus bilangan bulat minimal 1.");
+    }
 
     onSubmit({
-      url: inputMode === "url" ? url : undefined,
-      html: inputMode === "html" ? html : undefined,
+      url: inputMode === "url" ? trimmedUrl : undefined,
+      html: inputMode === "html" ? trimmedHtml : undefined,
       algorithm,
-      selector,
+      selector: trimmedSelector,
       limit: limitMode === "all" ? 0 : limitN,
       inputMode,
     });

@@ -81,6 +81,103 @@ export function isValidUrl(str: string): boolean {
   }
 }
 
+export interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+}
+
+const VOID_HTML_TAGS = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+]);
+
+const HTML_TAG_REGEX = /<\/?([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*>/g;
+
+function normalizeHtml(input: string): string {
+  return input.replace(/<!--[\s\S]*?-->/g, "").trim();
+}
+
+export function validateHtmlInput(html: string): ValidationResult {
+  const normalized = normalizeHtml(html);
+  if (!normalized) {
+    return { isValid: false, error: "HTML tidak boleh kosong." };
+  }
+
+  if (!/<html\b/i.test(normalized)) {
+    return { isValid: false, error: "Dokumen harus memiliki tag <html>." };
+  }
+
+  if (!/<body\b/i.test(normalized)) {
+    return { isValid: false, error: "Dokumen harus memiliki tag <body>." };
+  }
+
+  const stack: string[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = HTML_TAG_REGEX.exec(normalized)) !== null) {
+    const fullTag = match[0];
+    const tagName = match[1].toLowerCase();
+    const isClosingTag = fullTag.startsWith("</");
+    const isSelfClosing = fullTag.endsWith("/>");
+
+    if (isClosingTag) {
+      const expectedTag = stack.pop();
+      if (!expectedTag) {
+        return {
+          isValid: false,
+          error: `Tag penutup </${tagName}> tidak memiliki pasangan pembuka.`,
+        };
+      }
+      if (expectedTag !== tagName) {
+        return {
+          isValid: false,
+          error: `Struktur tag tidak valid: menutup </${tagName}> tetapi yang diharapkan </${expectedTag}>.`,
+        };
+      }
+      continue;
+    }
+
+    if (!isSelfClosing && !VOID_HTML_TAGS.has(tagName)) {
+      stack.push(tagName);
+    }
+  }
+
+  if (stack.length > 0) {
+    return {
+      isValid: false,
+      error: `Tag <${stack[stack.length - 1]}> belum ditutup.`,
+    };
+  }
+
+  return { isValid: true };
+}
+
+export function validateCssSelectorInput(selector: string): ValidationResult {
+  const normalized = selector.trim();
+  if (!normalized) {
+    return { isValid: false, error: "CSS Selector tidak boleh kosong." };
+  }
+
+  try {
+    document.createDocumentFragment().querySelector(normalized);
+    return { isValid: true };
+  } catch {
+    return { isValid: false, error: "Sintaks CSS Selector tidak valid." };
+  }
+}
+
 // Buat label pendek untuk node (tag + id/class jika ada)
 export function nodeLabel(node: TreeNode): string {
   let label = `<${node.tag}`;
