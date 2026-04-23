@@ -28,8 +28,14 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
   const [algorithm, setAlgorithm] = useState<Algorithm>("bfs");
   const [selector, setSelector] = useState("");
   const [limitMode, setLimitMode] = useState<"all" | "top">("all");
-  const [limitN, setLimitN] = useState(10);
+  const [limitNInput, setLimitNInput] = useState("10");
   const [error, setError] = useState("");
+
+  function handleLimitNChange(rawValue: string) {
+    const digitsOnly = rawValue.replace(/\D/g, "");
+    const withoutLeadingZero = digitsOnly.replace(/^0+(?=\d)/, "");
+    setLimitNInput(withoutLeadingZero);
+  }
 
   function handleSubmit() {
     setError("");
@@ -50,8 +56,16 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
       return setError(selectorValidation.error ?? "CSS Selector tidak valid.");
     }
 
-    if (limitMode === "top" && (!Number.isInteger(limitN) || limitN < 1)) {
-      return setError("Top N harus bilangan bulat minimal 1.");
+    let topNLimit = 0;
+    if (limitMode === "top") {
+      if (!limitNInput.trim()) {
+        return setError("Top N wajib diisi.");
+      }
+
+      topNLimit = Number(limitNInput);
+      if (!Number.isInteger(topNLimit) || topNLimit < 1) {
+        return setError("Top N harus bilangan bulat minimal 1.");
+      }
     }
 
     onSubmit({
@@ -59,7 +73,7 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
       html: inputMode === "html" ? trimmedHtml : undefined,
       algorithm,
       selector: trimmedSelector,
-      limit: limitMode === "all" ? 0 : limitN,
+      limit: limitMode === "all" ? 0 : topNLimit,
       inputMode,
     });
   }
@@ -194,8 +208,8 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
             <input
               type="number"
               min={1}
-              value={limitN}
-              onChange={(e) => setLimitN(Number(e.target.value))}
+              value={limitNInput}
+              onChange={(e) => handleLimitNChange(e.target.value)}
               className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-zinc-100 focus:outline-none focus:border-emerald-500"
             />
           )}
