@@ -20,11 +20,11 @@ func ParseHTML(htmlStr string) (*dom.Node, error) {
 
 	root := findRootElement(docRoot)
 	if root == nil {
-		if len(docRoot.Children) > 0 {
-			root = docRoot.Children[0]
-		} else {
-			return nil, fmt.Errorf("tidak menemukan elemen root HTML")
-		}
+		return nil, fmt.Errorf("dokumen harus memiliki elemen <html>")
+	}
+
+	if findChildByTagName(root, "body") == nil {
+		return nil, fmt.Errorf("dokumen harus memiliki elemen <body>")
 	}
 	root.Parent = nil
 
@@ -54,7 +54,7 @@ func buildDocumentTree(input string) (*dom.Node, error) {
 		if strings.HasPrefix(input[i:], "<!--") {
 			endComment := strings.Index(input[i+4:], "-->")
 			if endComment < 0 {
-				break
+				return nil, fmt.Errorf("komentar HTML tidak ditutup")
 			}
 			i += 4 + endComment + 3
 			continue
@@ -63,7 +63,7 @@ func buildDocumentTree(input string) (*dom.Node, error) {
 		if strings.HasPrefix(input[i:], "<!") {
 			endDecl := strings.IndexByte(input[i:], '>')
 			if endDecl < 0 {
-				break
+				return nil, fmt.Errorf("deklarasi HTML tidak ditutup")
 			}
 			i += endDecl + 1
 			continue
@@ -72,11 +72,16 @@ func buildDocumentTree(input string) (*dom.Node, error) {
 		if strings.HasPrefix(input[i:], "</") {
 			closeEnd := strings.IndexByte(input[i:], '>')
 			if closeEnd < 0 {
-				break
+				return nil, fmt.Errorf("tag penutup tidak lengkap")
 			}
 
 			tagName := normalizeTagName(input[i+2 : i+closeEnd])
-			popUntilMatch(&stack, tagName)
+			if tagName == "" {
+				return nil, fmt.Errorf("nama tag penutup tidak valid")
+			}
+			if err := closeCurrentTag(&stack, tagName); err != nil {
+				return nil, err
+			}
 
 			i += closeEnd + 1
 			continue
@@ -84,7 +89,7 @@ func buildDocumentTree(input string) (*dom.Node, error) {
 
 		tagEnd := findTagEnd(input, i)
 		if tagEnd < 0 {
-			break
+			return nil, fmt.Errorf("tag pembuka tidak ditutup")
 		}
 
 		tagContent := strings.TrimSpace(input[i+1 : tagEnd])
@@ -128,6 +133,11 @@ func buildDocumentTree(input string) (*dom.Node, error) {
 		}
 
 		i = tagEnd + 1
+	}
+
+	if len(stack) > 1 {
+		unclosedTag := stack[len(stack)-1].Tag
+		return nil, fmt.Errorf("tag <%s> belum ditutup", unclosedTag)
 	}
 
 	return docRoot, nil
@@ -270,25 +280,30 @@ func appendText(n *dom.Node, rawText string) {
 	n.AddChild(textNode)
 }
 
-func popUntilMatch(stack *[]*dom.Node, tag string) bool {
-	if tag == "" || len(*stack) <= 1 {
-		return false
+func closeCurrentTag(stack *[]*dom.Node, tag string) error {
+	if len(*stack) <= 1 {
+		return fmt.Errorf("tag penutup </%s> tidak memiliki pasangan pembuka", tag)
 	}
 
-	foundIndex := -1
-	for i := len(*stack) - 1; i >= 1; i-- {
-		if (*stack)[i].Tag == tag {
-			foundIndex = i
-			break
+	current := (*stack)[len(*stack)-1]
+	if current.Tag != tag {
+		return fmt.Errorf("tag penutup </%s> tidak cocok dengan <%s>", tag, current.Tag)
+	}
+
+	*stack = (*stack)[:len(*stack)-1]
+	return nil
+}
+
+func findChildByTagName(node *dom.Node, tag string) *dom.Node {
+	if node == nil {
+		return nil
+	}
+	for _, child := range node.Children {
+		if child.Tag == tag {
+			return child
 		}
 	}
-
-	if foundIndex == -1 {
-		return false
-	}
-
-	*stack = (*stack)[:foundIndex]
-	return true
+	return nil
 }
 
 func normalizeTagName(raw string) string {

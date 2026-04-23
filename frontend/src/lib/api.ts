@@ -4,10 +4,23 @@ import { SearchRequest, SearchResponse, LCARequest, LCAResponse } from "@/types"
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 async function handleResponse<T>(res: Response): Promise<T> {
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || `HTTP ${res.status}`);
+  const rawBody = await res.text();
+  let data: unknown = {};
+
+  if (rawBody) {
+    try {
+      data = JSON.parse(rawBody);
+    } catch {
+      throw new Error("Respons backend tidak valid (bukan JSON).");
+    }
   }
+
+  if (!res.ok) {
+    throw new Error(
+      (data as { error?: string }).error || `HTTP ${res.status} ${res.statusText}`
+    );
+  }
+
   return data as T;
 }
 
