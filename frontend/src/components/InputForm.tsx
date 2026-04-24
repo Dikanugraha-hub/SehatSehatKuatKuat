@@ -28,7 +28,7 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
   const [algorithm, setAlgorithm] = useState<Algorithm>("bfs");
   const [selector, setSelector] = useState("");
   const [limitMode, setLimitMode] = useState<"all" | "top">("all");
-  const [limitN, setLimitN] = useState(10);
+  const [limitN, setLimitN] = useState("10");
   const [error, setError] = useState("");
 
   function handleSubmit() {
@@ -50,8 +50,20 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
       return setError(selectorValidation.error ?? "CSS Selector tidak valid.");
     }
 
-    if (limitMode === "top" && (!Number.isInteger(limitN) || limitN < 1)) {
-      return setError("Top N harus bilangan bulat minimal 1.");
+    let resolvedLimit = 0;
+    if (limitMode === "top") {
+      const trimmedLimitN = limitN.trim();
+      if (!trimmedLimitN) {
+        return setError("Top N wajib diisi sebelum menjalankan traversal.");
+      }
+      if (!/^\d+$/.test(trimmedLimitN)) {
+        return setError("Top N harus berupa bilangan bulat.");
+      }
+
+      resolvedLimit = Number(trimmedLimitN);
+      if (resolvedLimit < 1) {
+        return setError("Top N harus bilangan bulat minimal 1.");
+      }
     }
 
     onSubmit({
@@ -59,7 +71,7 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
       html: inputMode === "html" ? trimmedHtml : undefined,
       algorithm,
       selector: trimmedSelector,
-      limit: limitMode === "all" ? 0 : limitN,
+      limit: limitMode === "all" ? 0 : resolvedLimit,
       inputMode,
     });
   }
@@ -193,9 +205,9 @@ export default function InputForm({ onSubmit, isLoading }: InputFormProps) {
           {limitMode === "top" && (
             <input
               type="number"
-              min={1}
               value={limitN}
-              onChange={(e) => setLimitN(Number(e.target.value))}
+              onChange={(e) => setLimitN(e.target.value)}
+              placeholder="contoh: 10"
               className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-zinc-100 focus:outline-none focus:border-emerald-500"
             />
           )}
