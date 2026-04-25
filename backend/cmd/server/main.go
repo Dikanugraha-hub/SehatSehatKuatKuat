@@ -99,10 +99,20 @@ func main() {
 
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", app.handleRoot)
 	mux.HandleFunc("/health", app.handleHealth)
 	mux.HandleFunc("/search", app.handleSearch)
 	mux.HandleFunc("/lca", app.handleLca)
 	return withCORS(mux)
+}
+
+func (app *application) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Error: "method tidak didukung"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte("SehatSehatKuatKuat API is running"))
 }
 
 func (app *application) handleHealth(w http.ResponseWriter, r *http.Request) {
