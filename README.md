@@ -45,7 +45,7 @@ SehatSehatKuatKuat/
 
 | Bagian | Teknologi |
 |--------|-----------|
-| Frontend | Next.js 15, TypeScript, Tailwind CSS |
+| Frontend | Next.js 16, TypeScript, Tailwind CSS |
 | Backend | Go 1.24 |
 | Container | Docker, Docker Compose |
 
@@ -82,8 +82,12 @@ Buka terminal baru:
 ```bash
 cd frontend
 npm install
-cp .env.example .env.local
 npm run dev
+```
+
+Jika perlu mengubah endpoint backend, buat file `.env.local` lalu isi:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
 Buka browser di `http://localhost:3000`.
@@ -141,8 +145,8 @@ docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8080 frontend
 | 6 | Penelusuran pohon DOM dan menampilkan hasil | ✅ |
 | 7 | Menandai jalur tempuh oleh algoritma | ✅ |
 | 8 | Menyimpan jalur yang ditempuh dalam traversal log | ✅ |
-| 9 | [Bonus] Membuat video | ⬜ |
-| 10 | [Bonus] Deploy aplikasi | ⬜ |
+| 9 | [Bonus] Membuat video | ✅ |
+| 10 | [Bonus] Deploy aplikasi | ✅ |
 | 11 | [Bonus] Animasi penelusuran pohon | ✅ |
 | 12 | [Bonus] Implementasi multithreading (Parallel BFS) | ✅ |
 | 13 | [Bonus] Implementasi LCA Binary Lifting | ✅ |
@@ -162,8 +166,8 @@ docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8080 frontend
 ## 📚 Referensi
 
 - [CSS Selector Reference — MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors)
-- [Breadth-First Search — GeeksfroGeeks](https://www.geeksforgeeks.org/dsa/breadth-first-search-or-bfs-for-a-graph/)
-- [Depth-First Search — GeeksfroGeeks](https://www.geeksforgeeks.org/dsa/depth-first-search-or-dfs-for-a-graph/)
-- [LCA Binary Lifting — GeeksfroGeeks](https://www.geeksforgeeks.org/dsa/lca-in-a-tree-using-binary-lifting-technique/)
+- [Breadth-First Search — GeeksforGeeks](https://www.geeksforgeeks.org/dsa/breadth-first-search-or-bfs-for-a-graph/)
+- [Depth-First Search — GeeksforGeeks](https://www.geeksforgeeks.org/dsa/depth-first-search-or-dfs-for-a-graph/)
+- [LCA Binary Lifting — GeeksforGeeks](https://www.geeksforgeeks.org/dsa/lca-in-a-tree-using-binary-lifting-technique/)
 - [Go Documentation](https://go.dev/doc/)
 - [Next.js Documentation](https://nextjs.org/docs)

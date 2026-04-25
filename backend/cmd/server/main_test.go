@@ -172,6 +172,35 @@ func TestHandleSearchMethodNotAllowed(t *testing.T) {
 	}
 }
 
+func TestHandleRootSuccess(t *testing.T) {
+	app := &application{}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	app.routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status harus 200, dapat: %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "SehatSehatKuatKuat API is running") {
+		t.Fatalf("response root tidak sesuai, dapat: %q", rec.Body.String())
+	}
+}
+
+func TestHandleRootMethodNotAllowed(t *testing.T) {
+	app := &application{}
+
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	rec := httptest.NewRecorder()
+
+	app.routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status harus 405, dapat: %d", rec.Code)
+	}
+}
+
 func marshalBody(t *testing.T, v any) *bytes.Buffer {
 	t.Helper()
 
